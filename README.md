@@ -149,8 +149,8 @@ Lists unvetted and exempted packages ranked by priority, with copy-paste command
 ┏━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
 ┃ Priority ┃ Package  ┃ Version ┃ Action               ┃ Criteria       ┃
 ┡━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
-│ HIGH     │ flask    │ 3.1.3   │ pyvet inspect flask … │ safe-to-deploy │
-│ MEDIUM   │ click    │ 8.3.2   │ pyvet inspect click … │ safe-to-deploy │
+│ HIGH     │ flask    │ 3.1.3   │ pyvet inspect flask  │ safe-to-deploy │
+│ MEDIUM   │ click    │ 8.3.2   │ pyvet inspect click  │ safe-to-deploy │
 └──────────┴──────────┴─────────┴──────────────────────┴────────────────┘
 ```
 

@@ -55,7 +55,6 @@ src/pyvet/
 │
 ├── core/                Core logic (no I/O to terminal)
 │   ├── config.py        Load/save config.toml and audits.toml
-│   ├── audits.py        Audit data accessors
 │   ├── lockfile.py      Parse uv.lock / requirements.txt → LockedDep list
 │   ├── resolver.py      Audit graph resolution algorithm
 │   ├── criteria.py      Criteria definitions, implication graph
