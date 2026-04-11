@@ -1,0 +1,22 @@
+[project]
+name = "pyvet"
+version = "0.1.0"
+description = "Supply-chain security for Python (PyPI) packages"
+readme = "README.md"
+authors = [
+    { name = "Christoph Diehl", email = "1614333+posidron@users.noreply.github.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.28.1",
+    "rich>=14.3.3",
+    "tomli>=2.0 ; python_full_version < '3.11'",
+    "tomlkit>=0.14.0",
+]
+
+[project.scripts]
+pyvet = "pyvet.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

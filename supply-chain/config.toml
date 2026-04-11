@@ -1,0 +1,95 @@
+# pyvet configuration for this project.
+
+default-criteria = "safe-to-deploy"
+
+[pyvet]
+version = "0.1"
+
+
+[[exemptions.anyio]]
+version = "4.13.0"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.certifi]]
+version = "2026.2.25"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.exceptiongroup]]
+version = "1.3.1"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.h11]]
+version = "0.16.0"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.httpcore]]
+version = "1.0.9"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.httpx]]
+version = "0.28.1"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.idna]]
+version = "3.11"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.markdown-it-py]]
+version = "4.0.0"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.mdurl]]
+version = "0.1.2"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.pygments]]
+version = "2.20.0"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.rich]]
+version = "14.3.3"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.tomli]]
+version = "2.4.1"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.tomlkit]]
+version = "0.14.0"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[[exemptions.typing-extensions]]
+version = "4.15.0"
+criteria = "safe-to-deploy"
+suggest = true
+notes = "Pre-existing dependency, not yet audited"
+
+[policy]
+
+[imports]

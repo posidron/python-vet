@@ -1,0 +1,10 @@
+# Audits performed by this project's members.
+
+[criteria.safe-to-run]
+description = "This package can be installed and executed on a local workstation or in controlled automation without surprising consequences, such as:\n- Reading or writing data from sensitive or unrelated parts of the filesystem\n- Installing software or reconfiguring the device\n- Connecting to untrusted network endpoints\n- Misuse of system resources (e.g. cryptocurrency mining)"
+
+[criteria.safe-to-deploy]
+description = "This package will not introduce a serious security vulnerability to production software exposed to untrusted input.\n\nAuditors must review enough to fully reason about the behavior of any native extensions (C/C++/Rust via FFI), use of eval/exec, dynamic imports, and usage of powerful stdlib modules (os, subprocess, socket, ctypes). For any reasonable usage, an attacker must not be able to manipulate runtime behavior in an exploitable or surprising way."
+implies = "safe-to-run"
+
+[audits]
