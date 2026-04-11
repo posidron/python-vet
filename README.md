@@ -4,6 +4,8 @@ Supply-chain security for Python (PyPI) packages.
 
 **pyvet** ensures that every third-party dependency in your Python project has been audited by a trusted entity before it ships. It is a Python equivalent of Mozilla's [cargo-vet](https://mozilla.github.io/cargo-vet/) for Rust crates.
 
+![Architecture](assets/Architecture.drawio.png)
+
 ## Why
 
 Anyone can publish a package to PyPI. Most projects pull in dozens of transitive dependencies without reviewing them. A single compromised package can exfiltrate secrets, install backdoors, or mine cryptocurrency on your CI runners.
