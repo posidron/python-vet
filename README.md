@@ -153,19 +153,49 @@ Lists unvetted and exempted packages ranked by priority, with copy-paste command
 | `pyvet init` | Bootstrap the `supply-chain/` directory, auto-exempt all current deps |
 | `pyvet check` | Verify all dependencies are vetted (default when running bare `pyvet`) |
 | `pyvet certify <pkg> <ver> [old_ver]` | Record a full or delta audit |
+| `pyvet certify <pkg> <ver> --wildcard <user>` | Record a wildcard audit for a PyPI user |
 | `pyvet inspect <pkg> <ver>` | Download and inspect a package's source |
 | `pyvet diff <pkg> <old_ver> <new_ver>` | Show diff between two versions |
-| `pyvet suggest` | Recommend lowest-effort audits to shrink exemptions |
+| `pyvet suggest` | Recommend lowest-effort audits with line-count estimates |
 | `pyvet trust <pkg> --user <u> --start <d> --end <d>` | Record a trusted publisher |
-| `pyvet prune` | Remove audit entries and exemptions for packages no longer in the lockfile |
+| `pyvet import add <name> --url <url>` | Add a trusted external audit source |
+| `pyvet import fetch` | Fetch/refresh all configured import sources |
+| `pyvet import list` | List configured imports |
+| `pyvet add-exemption <pkg> <ver>` | Mark a package as exempted from review |
+| `pyvet record-violation <pkg> <versions>` | Declare that versions violate certain criteria |
+| `pyvet regenerate exemptions` | Regenerate exemptions to make `check` pass minimally |
+| `pyvet regenerate imports` | Re-fetch all imports and update `imports.lock` |
+| `pyvet explain-audit <pkg> [ver]` | Show the audit path for a package |
+| `pyvet aggregate <sources_file>` | Merge audits from multiple sources into one file |
+| `pyvet prune` | Remove stale audit entries and exemptions |
 | `pyvet fmt` | Normalize and sort TOML config files |
+| `pyvet gc` | Clean up old packages from the download cache |
+| `pyvet renew [crate]` | Renew wildcard audit expirations |
+
+### Global Options
+
+These flags can be placed before or after the subcommand:
+
+```
+--locked              Do not fetch new imported audits
+--frozen              Avoid the network entirely (implies --locked)
+--output-format json  Machine-readable JSON output
+--store-path <path>   Custom path to the supply-chain directory
+```
 
 ### Common Options
 
 ```
 pyvet certify <pkg> <ver> [old_ver] [--criteria <c>] [--who <w>] [--notes <n>]
+pyvet certify <pkg> <ver> --wildcard <user> [--start-date <d>] [--end-date <d>]
 pyvet inspect <pkg> <ver> [--mode local|web]
 pyvet trust <pkg> --user <u> --start <YYYY-MM-DD> --end <YYYY-MM-DD> [--criteria <c>] [--notes <n>]
+pyvet add-exemption <pkg> <ver> [--criteria <c>] [--notes <n>] [--no-suggest]
+pyvet record-violation <pkg> <versions> [--criteria <c>] [--who <w>] [--notes <n>]
+pyvet aggregate <sources_file> [--output-file <path>]
+pyvet prune [--no-imports] [--no-exemptions] [--no-audits]
+pyvet gc [--max-age-days <n>] [--clean]
+pyvet renew [crate] [--expiring]
 ```
 
 ## Workflow
@@ -214,10 +244,10 @@ Add to your CI pipeline (GitHub Actions example):
 
 ```yaml
 - name: Audit dependencies
-  run: pyvet check
+  run: pyvet check --locked
 ```
 
-`pyvet check` exits with code 1 if any dependency is unvetted, blocking the build.
+`pyvet check` exits with code 1 if any dependency is unvetted, blocking the build. Use `--locked` in CI to skip fetching imports (rely on cached `imports.lock`). Use `--output-format json` for machine-readable output.
 
 ## File Layout
 
@@ -281,6 +311,75 @@ Trust audit sets from other organizations:
 [imports.acme]
 url = "https://raw.githubusercontent.com/acme-corp/pyvet-audits/main/audits.toml"
 ```
+
+You can map foreign criteria to local ones and exclude specific packages:
+
+```toml
+[imports.acme.criteria-map]
+their-custom-criteria = "safe-to-deploy"
+
+[imports.acme]
+exclude = ["some-package-we-disagree-on"]
+```
+
+### Wildcard Audits
+
+Trust all versions of a package published by a specific PyPI user:
+
+```toml
+# supply-chain/audits.toml
+[[wildcard-audits.click]]
+who = "Alice <alice@example.com>"
+criteria = "safe-to-deploy"
+user-login = "pallets"
+start = "2024-01-01"
+end = "2025-01-01"
+```
+
+Create via CLI: `pyvet certify click 8.3.2 --wildcard pallets`
+
+Renew expiring wildcards: `pyvet renew --expiring`
+
+### Violations
+
+Flag known-bad packages that must never be used, even if exempted:
+
+```toml
+# supply-chain/audits.toml
+[[audits.evil-package]]
+who = "Alice <alice@example.com>"
+criteria = "safe-to-deploy"
+violation = "*"
+notes = "Contains cryptocurrency miner"
+```
+
+Create via CLI: `pyvet record-violation evil-package '*' --notes "malware"`
+
+### Dependency Criteria Overrides
+
+Relax or tighten criteria for specific dependencies of a package:
+
+```toml
+[policy."my-app"]
+dependency-criteria = { "debug-helper" = [] }
+notes = "debug-helper is never used in production"
+```
+
+### Multi-Repository Aggregation
+
+For organizations with multiple repos, aggregate audit files into one:
+
+```bash
+# sources.list
+https://raw.githubusercontent.com/org/repo-a/main/supply-chain/audits.toml
+https://raw.githubusercontent.com/org/repo-b/main/supply-chain/audits.toml
+```
+
+```bash
+pyvet aggregate sources.list --output-file audits.toml
+```
+
+Each aggregated entry gets an `aggregated-from` field tracking its origin.
 
 ## License
 

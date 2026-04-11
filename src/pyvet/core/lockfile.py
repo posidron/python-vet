@@ -13,6 +13,7 @@ class LockedDep:
     """A dependency pinned in a lockfile."""
     name: str
     version: str
+    is_dev: bool = False
 
     @property
     def key(self) -> str:

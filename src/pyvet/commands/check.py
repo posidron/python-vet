@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
+import json
+import sys
 from pathlib import Path
 
 from pyvet.core.config import (
     load_config, load_audits,
     get_default_criteria, get_exemptions, get_policy,
     get_audits, get_criteria_table, get_trusted,
-    get_imports_config,
+    get_imports_config, get_wildcard_audits,
 )
 from pyvet.core.criteria import CriteriaGraph
 from pyvet.core.lockfile import detect_and_parse_lockfile
 from pyvet.core.resolver import resolve, VetResult
-from pyvet.core.imports import load_imports_lock
+from pyvet.core.imports import load_imports_lock, refresh_imports
 from pyvet.utils.ui import (
     console, print_success, print_error, print_info, make_table,
 )
@@ -21,6 +23,9 @@ from pyvet.utils.ui import (
 
 def run(args: object) -> int:
     project_dir = Path.cwd()
+    locked: bool = getattr(args, "locked", False)
+    frozen: bool = getattr(args, "frozen", False)
+    output_format: str = getattr(args, "output_format", "human")
 
     # Load config and audits
     config = load_config(project_dir)
@@ -55,10 +60,18 @@ def run(args: object) -> int:
     policy = get_policy(config)
     default_criteria = get_default_criteria(config)
     imports_config = get_imports_config(config)
+    wildcard_audits = get_wildcard_audits(audits_doc)
 
-    # Load imported audits from imports.lock
-    # (For now, parse the cached lock file. Use `pyvet import fetch` to refresh.)
-    imported_audits = _load_cached_imports(project_dir, imports_config)
+    # Load imported audits — refresh unless --locked/--frozen
+    if frozen or locked:
+        imported_audits = _load_cached_imports(project_dir, imports_config)
+    elif imports_config:
+        try:
+            imported_audits = refresh_imports(project_dir, imports_config)
+        except Exception:
+            imported_audits = _load_cached_imports(project_dir, imports_config)
+    else:
+        imported_audits = {}
 
     # Resolve
     result = resolve(
@@ -70,9 +83,14 @@ def run(args: object) -> int:
         criteria_graph=criteria_graph,
         policy=policy,
         default_criteria=default_criteria,
+        wildcard_audits=wildcard_audits,
     )
 
-    # Display results
+    # JSON output
+    if output_format == "json":
+        return _output_json(result)
+
+    # Human output
     console.print()
     if result.success:
         print_success(
@@ -103,6 +121,27 @@ def run(args: object) -> int:
 
         _show_summary_table(result.results)
         return 1
+
+
+def _output_json(result) -> int:
+    data = {
+        "success": result.success,
+        "vetted_count": result.vetted_count,
+        "failure_count": len(result.failures),
+        "results": [
+            {
+                "package": r.package,
+                "version": r.version,
+                "vetted": r.vetted,
+                "reason": r.reason,
+                "required_criteria": r.required_criteria,
+                "missing_criteria": r.missing_criteria,
+            }
+            for r in result.results
+        ],
+    }
+    print(json.dumps(data, indent=2))
+    return 0 if result.success else 1
 
 
 def _show_summary_table(results: list[VetResult]) -> None:

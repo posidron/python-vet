@@ -19,9 +19,10 @@ class VetResult:
     package: str
     version: str
     vetted: bool
-    reason: str  # e.g. "full-audit", "delta-chain", "exemption", "trusted", "unvetted"
+    reason: str  # e.g. "full-audit", "delta-chain", "exemption", "trusted", "wildcard", "unvetted"
     required_criteria: str = "safe-to-deploy"
     missing_criteria: list[str] = field(default_factory=list)
+    via_import: str | None = None  # name of the import source, if any
 
 
 @dataclass
@@ -51,19 +52,30 @@ def resolve(
     criteria_graph: CriteriaGraph,
     policy: dict[str, dict[str, Any]],
     default_criteria: str,
+    wildcard_audits: dict[str, list[dict[str, Any]]] | None = None,
 ) -> CheckResult:
-    """Check all dependencies against audits, exemptions, trusted entries, and imports."""
+    """Check all dependencies against audits, exemptions, trusted entries, imports, and wildcards."""
 
     # Merge imported audits into a unified view
     all_audits = _merge_audits(audits, imported_audits)
 
+    # Merge imported trusted entries
+    all_trusted = dict(trusted)
+    for _source_name, source_data in imported_audits.items():
+        for pkg, entries in source_data.get("trusted", {}).items():
+            key = normalize_name(pkg)
+            if key not in all_trusted:
+                all_trusted[key] = []
+            all_trusted[key] = list(all_trusted[key]) + list(entries)
+
     results: list[VetResult] = []
     for dep in deps:
         key = dep.key
-        required = _get_required_criteria(key, policy, default_criteria)
+        required = _get_required_criteria(key, dep, policy, default_criteria)
 
         result = _check_single(
-            dep, required, all_audits, exemptions, trusted, criteria_graph
+            dep, required, all_audits, exemptions, all_trusted,
+            criteria_graph, wildcard_audits or {},
         )
         results.append(result)
 
@@ -89,11 +101,32 @@ def _merge_audits(
 
 def _get_required_criteria(
     pkg_key: str,
+    dep: LockedDep,
     policy: dict[str, dict[str, Any]],
     default_criteria: str,
 ) -> str:
     """Determine the required criteria for a given package."""
     pkg_policy = policy.get(pkg_key, {})
+
+    # Check dependency-criteria overrides from any policy entry
+    for _parent, parent_policy in policy.items():
+        dep_criteria = parent_policy.get("dependency-criteria", {})
+        if pkg_key in dep_criteria:
+            override = dep_criteria[pkg_key]
+            if isinstance(override, list) and len(override) == 0:
+                return ""  # explicitly exempted
+            if isinstance(override, list) and override:
+                return override[0]
+            if isinstance(override, str):
+                return override
+
+    # Use dev-criteria for dev-only deps
+    if getattr(dep, "is_dev", False):
+        dev_criteria = pkg_policy.get("dev-criteria")
+        if dev_criteria:
+            return dev_criteria
+        return policy.get("_default_dev_criteria", "safe-to-run")
+
     return pkg_policy.get("criteria", default_criteria)
 
 
@@ -104,8 +137,17 @@ def _check_single(
     exemptions: dict[str, list[dict[str, Any]]],
     trusted: dict[str, list[dict[str, Any]]],
     criteria_graph: CriteriaGraph,
+    wildcard_audits: dict[str, list[dict[str, Any]]],
 ) -> VetResult:
     """Check a single dependency."""
+    # Empty required_criteria means explicitly exempted via dependency-criteria
+    if not required_criteria:
+        return VetResult(
+            package=dep.name, version=dep.version,
+            vetted=True, reason="dependency-criteria-override",
+            required_criteria="(none)",
+        )
+
     key = dep.key
 
     entries = all_audits.get(key, [])
@@ -133,7 +175,22 @@ def _check_single(
                     required_criteria=required_criteria,
                 )
 
-    # 3. Check trusted publishers
+    # 3. Check wildcard audits
+    wc_entries = wildcard_audits.get(key, [])
+    if not wc_entries:
+        wc_entries = wildcard_audits.get(dep.name, [])
+    for wc in wc_entries:
+        wc_criteria = _normalize_criteria(wc.get("criteria"))
+        if _criteria_satisfied(wc_criteria, required_criteria, criteria_graph):
+            # Wildcard audits apply to all versions by the given user within date range
+            # We trust the entry as covering this version
+            return VetResult(
+                package=dep.name, version=dep.version,
+                vetted=True, reason="wildcard",
+                required_criteria=required_criteria,
+            )
+
+    # 4. Check trusted publishers
     trusted_entries = trusted.get(key, [])
     for t in trusted_entries:
         t_criteria = _normalize_criteria(t.get("criteria"))
@@ -144,7 +201,7 @@ def _check_single(
                 required_criteria=required_criteria,
             )
 
-    # 4. Check exemptions (before delta chains — simpler explanation)
+    # 5. Check exemptions (before delta chains — simpler explanation)
     exempt_entries = exemptions.get(key, [])
     if dep.name in exemptions and key != dep.name:
         exempt_entries = exempt_entries + exemptions.get(dep.name, [])

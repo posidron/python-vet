@@ -14,6 +14,9 @@ from pyvet.utils.ui import console, print_success, print_info
 
 def run(args: object) -> int:
     project_dir = Path.cwd()
+    no_imports: bool = getattr(args, "no_imports", False)
+    no_exemptions: bool = getattr(args, "no_exemptions", False)
+    no_audits: bool = getattr(args, "no_audits", False)
 
     try:
         deps = detect_and_parse_lockfile(project_dir)
@@ -30,26 +33,28 @@ def run(args: object) -> int:
     pruned_audits = 0
 
     # Prune exemptions
-    exemptions = config.get("exemptions")
-    if exemptions:
-        to_remove = [
-            name for name in exemptions
-            if normalize_name(name) not in active_keys
-        ]
-        for name in to_remove:
-            del exemptions[name]
-            pruned_exemptions += 1
+    if not no_exemptions:
+        exemptions = config.get("exemptions")
+        if exemptions:
+            to_remove = [
+                name for name in exemptions
+                if normalize_name(name) not in active_keys
+            ]
+            for name in to_remove:
+                del exemptions[name]
+                pruned_exemptions += 1
 
     # Prune audits
-    audits = audits_doc.get("audits")
-    if audits:
-        to_remove = [
-            name for name in audits
-            if normalize_name(name) not in active_keys
-        ]
-        for name in to_remove:
-            del audits[name]
-            pruned_audits += 1
+    if not no_audits:
+        audits = audits_doc.get("audits")
+        if audits:
+            to_remove = [
+                name for name in audits
+                if normalize_name(name) not in active_keys
+            ]
+            for name in to_remove:
+                del audits[name]
+                pruned_audits += 1
 
     save_config(project_dir, config)
     save_audits(project_dir, audits_doc)

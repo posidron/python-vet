@@ -78,6 +78,11 @@ def get_criteria_table(audits_doc: TOMLDocument) -> dict[str, Any]:
     return dict(audits_doc.get("criteria", {}))
 
 
+def get_wildcard_audits(audits_doc: TOMLDocument) -> dict[str, list[dict[str, Any]]]:
+    """Return the wildcard-audits table as {pkg_name: [entries]}."""
+    return dict(audits_doc.get("wildcard-audits", {}))
+
+
 def get_trusted(audits_doc: TOMLDocument) -> dict[str, list[dict[str, Any]]]:
     """Return the trusted table as {pkg_name: [entries]}."""
     return dict(audits_doc.get("trusted", {}))
