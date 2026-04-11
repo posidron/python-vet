@@ -8,7 +8,13 @@ Supply-chain security for Python (PyPI) packages.
 
 Anyone can publish a package to PyPI. Most projects pull in dozens of transitive dependencies without reviewing them. A single compromised package can exfiltrate secrets, install backdoors, or mine cryptocurrency on your CI runners.
 
-pyvet closes this gap by tracking which packages have been reviewed, by whom, and under what criteria — then failing your build if anything is missing.
+**pyvet does not scan code or detect vulnerabilities automatically.** It is an audit *tracking* and *enforcement* tool. The philosophy is simple: humans are the auditors. pyvet records who reviewed what, under which criteria, and ensures that nothing ships without that review having happened.
+
+The primary reason developers don't audit dependencies is that it's too much work. pyvet reduces that effort to a manageable level through three mechanisms:
+
+- **Sharing** — Public packages are used by many projects. Organizations can share their audit findings so the same package isn't reviewed by every team independently.
+- **Delta audits** — Different versions of the same package are usually very similar. Reviewing just the diff between a previously-audited version and the new one is far less work than auditing from scratch.
+- **Deferred audits** — Full coverage isn't always practical on day one. Pre-existing dependencies are exempted automatically, and the backlog is ratcheted down over time.
 
 ## Key Features
 
