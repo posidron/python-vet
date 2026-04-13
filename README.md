@@ -6,7 +6,11 @@ Supply-chain security for Python (PyPI) packages.
 
 ![Overview](assets/overview.png)
 
-https://github.com/posidron/python-vet/raw/main/assets/pyvet.mp4
+
+
+
+https://github.com/user-attachments/assets/dd0d309b-ff86-4944-9e9b-fd869fd4a461
+
 
 
 ## Why
